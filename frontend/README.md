@@ -10,6 +10,7 @@ El reto 1 y el reto 2 tienen responsabilidades diferentes. Por eso separé la na
 
 - En reto 1 puedo probar la transformación, consultar su OpenAPI y revisar el catálogo de PostgreSQL.
 - En reto 2 puedo probar Dijkstra y consultar el OpenAPI específico del servicio Go.
+- En reto 3 puedo visualizar la arquitectura TO-BE para evitar desembolsos duplicados, incluyendo idempotencia, colas, Worker, INARI y notificaciones.
 
 De esta manera cada API tiene su propia sección y el usuario no necesita conocer detalles internos para probarla.
 

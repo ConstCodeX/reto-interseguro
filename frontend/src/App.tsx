@@ -106,7 +106,22 @@ type CatalogEntry = {
   fields: Array<{ key: string; label: string; source: string; defaultValue: string | null; required: boolean; order: number }>
   events: Array<{ description: string; orderEvent: number }>
 }
-type WorkbenchMode = 'transform' | 'route'
+type WorkbenchMode = 'transform' | 'route' | 'architecture'
+
+function ArchitectureView() {
+  return <section className="architecture-view">
+    <div className="architecture-heading"><div><div className="eyebrow"><Layers3 size={13} /> ARQUITECTURA TO-BE</div><h2>Reto 3</h2><p>Diseño resiliente para evitar desembolsos duplicados cuando INARI demora o responde 502.</p></div></div>
+    <div className="architecture-flow">
+      <div className="architecture-node node-client"><strong>Cliente</strong><span>Solicita desembolso</span></div><div className="architecture-arrow">Idempotency-Key</div>
+      <div className="architecture-node node-api"><strong>Backend Node.js</strong><span>Cloud Run<br />responde 202 Accepted</span></div><div className="architecture-arrow">lock + estado</div>
+      <div className="architecture-node node-control"><strong>Firestore / Redis</strong><span>Distributed Lock<br />PENDING / PROCESSING</span></div><div className="architecture-arrow">publica tarea</div>
+      <div className="architecture-node node-queue"><strong>Cloud Tasks / Pub/Sub</strong><span>reintentos<br />exponential backoff</span></div><div className="architecture-arrow">consume</div>
+      <div className="architecture-node node-worker"><strong>Worker Cloud Run</strong><span>revalida idempotencia<br />llama a INARI</span></div><div className="architecture-arrow">requestId</div>
+      <div className="architecture-node node-legacy"><strong>VMWARE INARI</strong><span>admwr-api<br />sistema legado</span></div>
+    </div>
+    <div className="architecture-bottom"><div className="architecture-card"><div className="status-card-label">resiliencia</div><strong>502 / timeout</strong><span>La cola reintenta sin bloquear al cliente. Los fallos definitivos terminan en DLQ.</span></div><div className="architecture-card"><div className="status-card-label">estado</div><strong>Firestore</strong><span>Persiste el resultado y permite consultar la operación aunque el cliente se desconecte.</span></div><div className="architecture-card"><div className="status-card-label">notificación</div><strong>SSE / WebSocket / Polling</strong><span>El frontend recibe PENDING, PROCESSING, SUCCEEDED o FAILED.</span></div></div>
+  </section>
+}
 
 function ApiInspector({ info, spec, loading, specUrl, onRefresh }: { info: ApiInfo | null; spec: ApiSpec | null; loading: boolean; specUrl: string; onRefresh: () => void }) {
   const routes = spec ? Object.entries(spec.paths ?? {}) : []
@@ -131,7 +146,7 @@ function DatabaseInspector({ catalog, loading, onRefresh }: { catalog: CatalogEn
 }
 
 function App() {
-  const [view, setView] = useState<'workbench' | 'api' | 'database'>('workbench')
+  const [view, setView] = useState<'workbench' | 'api' | 'database' | 'architecture'>('workbench')
   const [input, setInput] = useState(starterJson)
   const endpoint = defaultEndpoint
   const routeEndpoint = defaultRouteEndpoint
@@ -222,7 +237,7 @@ function App() {
 
   function selectMode(nextMode: WorkbenchMode) {
     setMode(nextMode)
-    setView('workbench')
+    setView(nextMode === 'architecture' ? 'architecture' : 'workbench')
     setInput(nextMode === 'route' ? routeStarterJson : starterJson)
     setResult(null)
     setError('')
@@ -249,14 +264,14 @@ function App() {
     <div className="ambient ambient-one" /><div className="ambient ambient-two" />
     <nav className="topbar">
       <div className="brand-lockup select-none"><div className="brand-mark"><Braces size={17} strokeWidth={2.4} /></div><div><div className="brand-name">VICTOR LARCO <span>RETO TECNICO</span></div><div className="brand-caption">multi-api workbench</div></div></div>
-      <div className="topbar-meta"><button className={`nav-tab ${mode === 'transform' ? 'active' : ''}`} onClick={() => selectMode('transform')}><Braces size={14} /> reto 1</button><button className={`nav-tab ${mode === 'route' ? 'active' : ''}`} onClick={() => selectMode('route')}><MapPinned size={14} /> reto 2</button><button className="nav-tab" onClick={() => void login()} disabled={loginLoading}><LogIn size={14} /> {loginLoading ? 'generando' : 'renovar token'}</button><span className="version-pill">v1</span></div>
+      <div className="topbar-meta"><button className={`nav-tab ${mode === 'transform' ? 'active' : ''}`} onClick={() => selectMode('transform')}><Braces size={14} /> reto 1</button><button className={`nav-tab ${mode === 'route' ? 'active' : ''}`} onClick={() => selectMode('route')}><MapPinned size={14} /> reto 2</button><button className={`nav-tab ${mode === 'architecture' ? 'active' : ''}`} onClick={() => selectMode('architecture')}><Layers3 size={14} /> reto 3</button><button className="nav-tab" onClick={() => void login()} disabled={loginLoading}><LogIn size={14} /> {loginLoading ? 'generando' : 'renovar token'}</button><span className="version-pill">v1</span></div>
     </nav>
 
-    <section className="intro-row"><div><div className="eyebrow"><Sparkles size={13} /> API VERSION 1</div><h1>Reto {mode === 'route' ? '2' : '1'}</h1><p className="intro-copy">{mode === 'route' ? 'Encuentra el depósito más cercano a un accidente calculando el camino mínimo sobre un grafo real de distritos y distancias.' : 'Transforma un JSON estructurado de endoso en la respuesta que consume el core usando plantillas configurables.'}</p></div><div className="intro-aside"><span className="aside-number">{mode === 'route' ? '02' : '01'}</span><span>{mode === 'route' ? <>camino mínimo<br />en tiempo real</> : <>transformación<br />en tiempo real</>}</span></div></section>
+    <section className="intro-row"><div><div className="eyebrow"><Sparkles size={13} /> {mode === 'architecture' ? 'ARCHITECTURE VIEW' : 'API VERSION 1'}</div><h1>Reto {mode === 'route' ? '2' : mode === 'architecture' ? '3' : '1'}</h1><p className="intro-copy">{mode === 'route' ? 'Encuentra el depósito más cercano a un accidente calculando el camino mínimo sobre un grafo real de distritos y distancias.' : mode === 'architecture' ? 'Visualiza la arquitectura resiliente diseñada para evitar desembolsos duplicados cuando INARI demora o responde 502.' : 'Transforma un JSON estructurado de endoso en la respuesta que consume el core usando plantillas configurables.'}</p></div><div className="intro-aside"><span className="aside-number">{mode === 'route' ? '02' : mode === 'architecture' ? '03' : '01'}</span><span>{mode === 'route' ? <>camino mínimo<br />en tiempo real</> : mode === 'architecture' ? <>flujo resiliente<br />en GCP</> : <>transformación<br />en tiempo real</>}</span></div></section>
 
-    <div className="section-tabs"><button className={`section-tab ${view === 'workbench' ? 'active' : ''}`} onClick={() => setView('workbench')}><Play size={14} /> probar</button><button className={`section-tab ${view === 'api' ? 'active' : ''}`} onClick={() => { setView('api'); void loadApiStatus() }}><SquareActivity size={14} /> API / Swagger</button>{mode === 'transform' && <button className={`section-tab ${view === 'database' ? 'active' : ''}`} onClick={() => { setView('database'); void loadCatalog() }}><Database size={14} /> base de datos</button>}</div>
+    {mode !== 'architecture' && <div className="section-tabs"><button className={`section-tab ${view === 'workbench' ? 'active' : ''}`} onClick={() => setView('workbench')}><Play size={14} /> probar</button><button className={`section-tab ${view === 'api' ? 'active' : ''}`} onClick={() => { setView('api'); void loadApiStatus() }}><SquareActivity size={14} /> API / Swagger</button>{mode === 'transform' && <button className={`section-tab ${view === 'database' ? 'active' : ''}`} onClick={() => { setView('database'); void loadCatalog() }}><Database size={14} /> base de datos</button>}</div>}
 
-    {view === 'api' ? <ApiInspector info={apiInfo} spec={apiSpec} specUrl={`${apiBase}/openapi.json`} loading={inspectorLoading} onRefresh={() => void loadApiStatus()} /> : view === 'database' ? <DatabaseInspector catalog={catalog} loading={inspectorLoading} onRefresh={() => void loadCatalog()} /> : <section className="workbench">
+    {mode === 'architecture' ? <ArchitectureView /> : view === 'api' ? <ApiInspector info={apiInfo} spec={apiSpec} specUrl={`${apiBase}/openapi.json`} loading={inspectorLoading} onRefresh={() => void loadApiStatus()} /> : view === 'database' ? <DatabaseInspector catalog={catalog} loading={inspectorLoading} onRefresh={() => void loadCatalog()} /> : <section className="workbench">
       <div className="panel input-panel"><div className="panel-header"><div className="panel-title"><span className="panel-index">A</span><div><strong>Entrada</strong><small>JSON plano</small></div></div><div className="panel-actions"><button className="quiet-button" onClick={formatInput} title="Formatear JSON"><Code2 size={15} /> formatear</button><button className="icon-button subtle" onClick={clearAll} title="Limpiar entrada"><RotateCcw size={15} /></button></div></div><div className="editor-wrap"><div className="line-numbers">{input.split('\n').map((_, index) => <span key={index}>{String(index + 1).padStart(2, '0')}</span>)}</div><textarea aria-label="JSON de entrada" spellCheck={false} value={input} onChange={(event) => setInput(event.target.value)} placeholder="Pega aquí el JSON plano..." /></div><div className="panel-footer"><span><FileJson size={14} /> {input.length} caracteres</span><span className={parsedInput.error ? 'parse-bad' : 'parse-ok'}>{parsedInput.error ? 'JSON inválido' : 'JSON válido'} <span className="tiny-dot" /></span></div></div>
       <div className="flow-rail"><div className="flow-line" /><button className="run-button transition-transform" onClick={transformJson} disabled={isLoading} title={mode === 'route' ? 'Calcular ruta' : 'Transformar JSON'}>{isLoading ? <span className="spinner" /> : <Play size={17} fill="currentColor" />}<span>{isLoading ? 'procesando' : mode === 'route' ? 'calcular ruta' : 'transformar'}</span></button><div className="flow-line" /></div>
       <div className="panel output-panel"><div className="panel-header"><div className="panel-title"><span className="panel-index output-index">B</span><div><strong>Salida</strong><small>{mode === 'route' ? 'route response' : 'core response'}</small></div></div>{result && <button className="quiet-button" onClick={copyResult}>{copied ? <Check size={15} /> : <Clipboard size={15} />} {copied ? 'copiado' : 'copiar JSON'}</button>}</div><div className="json-viewer">{result ? <JsonNode value={result} /> : <div className="empty-state"><div className="empty-icon"><WandSparkles size={21} /></div><strong>Tu respuesta aparecerá aquí</strong><span>{mode === 'route' ? 'Ejecuta Dijkstra para inspeccionar el depósito y camino elegidos.' : 'Ejecuta una transformación para inspeccionar el payload del core.'}</span></div>}</div><div className="panel-footer"><span><Code2 size={14} /> {result ? `${countKeys(result)} claves` : 'esperando entrada'}</span><span className="output-ready"><span className="tiny-dot" /> {result ? mode === 'route' ? 'ruta calculada' : 'transformado' : 'sin ejecutar'}</span></div></div>
