@@ -1,0 +1,38 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    dir: reto2
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/reto2:$COMMIT_SHA
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/reto2:$COMMIT_SHA
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE_NAME}
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/reto2:$COMMIT_SHA
+      - --region=${_REGION}
+      - --platform=managed
+      - --allow-unauthenticated
+      - --set-env-vars=PORT=8080,ENABLE_DEV_AUTH=false,CORS_ORIGIN=${_CORS_ORIGIN}
+      - --set-secrets=JWT_SECRET=jwt-secret:latest
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/reto2:$COMMIT_SHA
+
+substitutions:
+  _REGION: us-central1
+  _REPOSITORY: interseguro
+  _SERVICE_NAME: reto2-api
+  _CORS_ORIGIN: https://frontend.example.com
+
+options:
+  logging: CLOUD_LOGGING_ONLY

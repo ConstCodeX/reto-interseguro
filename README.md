@@ -114,6 +114,22 @@ make test
 
 Las imagenes estan preparadas para Cloud Run. El flujo recomendado es publicar cada API como un servicio independiente, usar Cloud SQL para PostgreSQL y publicar el frontend en Firebase Hosting o Cloud Storage.
 
+Para automatizar despliegues desde GitHub agregué una configuración de Cloud Build por proyecto:
+
+- [reto1/cloudbuild.yaml](reto1/cloudbuild.yaml): construye y despliega la API Node.js con Cloud SQL y Secret Manager.
+- [reto2/cloudbuild.yaml](reto2/cloudbuild.yaml): construye y despliega la API Go en Cloud Run.
+- [frontend/cloudbuild.yaml](frontend/cloudbuild.yaml): construye y despliega el frontend en Cloud Run usando las URLs de las APIs.
+
+Al crear los triggers en Cloud Build, usa la rama `main` y estos archivos de configuración:
+
+| Trigger | Archivo | Archivos incluidos |
+|---|---|---|
+| reto1-deploy | `reto1/cloudbuild.yaml` | `reto1/**` |
+| reto2-deploy | `reto2/cloudbuild.yaml` | `reto2/**` |
+| frontend-deploy | `frontend/cloudbuild.yaml` | `frontend/**` |
+
+En las sustituciones del trigger de reto 1 debes configurar `_DB_CONNECTION` con el nombre real de Cloud SQL, por ejemplo `PROJECT_ID:us-central1:interseguro-db`. En reto 2 configura `_CORS_ORIGIN` con la URL final del frontend. En frontend configura `_VITE_API_URL` y `_VITE_ROUTE_API_URL` con las URLs de Cloud Run de ambos APIs.
+
 ```bash
 gcloud builds submit --tag REGION-docker.pkg.dev/PROJECT_ID/interseguro/reto1 ./reto1
 gcloud builds submit --tag REGION-docker.pkg.dev/PROJECT_ID/interseguro/reto2 ./reto2

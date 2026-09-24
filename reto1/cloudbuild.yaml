@@ -1,0 +1,41 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    dir: reto1
+    args:
+      - build
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/reto1:$COMMIT_SHA
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/reto1:$COMMIT_SHA
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE_NAME}
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/reto1:$COMMIT_SHA
+      - --region=${_REGION}
+      - --platform=managed
+      - --allow-unauthenticated
+      - --add-cloudsql-instances=${_DB_CONNECTION}
+      - --set-env-vars=PORT=3000,DB_HOST=/cloudsql/${_DB_CONNECTION},DB_PORT=5432,DB_NAME=${_DB_NAME},DB_USER=${_DB_USER},DB_SYNCHRONIZE=false,ENABLE_DEV_AUTH=false
+      - --set-secrets=JWT_SECRET=jwt-secret:latest,DB_PASSWORD=postgres-password:latest
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/reto1:$COMMIT_SHA
+
+substitutions:
+  _REGION: us-central1
+  _REPOSITORY: interseguro
+  _SERVICE_NAME: reto1-api
+  _DB_CONNECTION: PROJECT_ID:us-central1:interseguro-db
+  _DB_NAME: interseguro
+  _DB_USER: interseguro
+
+options:
+  logging: CLOUD_LOGGING_ONLY

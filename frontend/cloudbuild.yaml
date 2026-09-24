@@ -1,0 +1,42 @@
+steps:
+  - name: gcr.io/cloud-builders/docker
+    dir: frontend
+    args:
+      - build
+      - --build-arg
+      - VITE_API_URL=${_VITE_API_URL}
+      - --build-arg
+      - VITE_ROUTE_API_URL=${_VITE_ROUTE_API_URL}
+      - -t
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/frontend:$COMMIT_SHA
+      - .
+
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - push
+      - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/frontend:$COMMIT_SHA
+
+  - name: gcr.io/google.com/cloudsdktool/cloud-sdk
+    entrypoint: gcloud
+    args:
+      - run
+      - deploy
+      - ${_SERVICE_NAME}
+      - --image=${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/frontend:$COMMIT_SHA
+      - --region=${_REGION}
+      - --platform=managed
+      - --allow-unauthenticated
+      - --port=80
+
+images:
+  - ${_REGION}-docker.pkg.dev/$PROJECT_ID/${_REPOSITORY}/frontend:$COMMIT_SHA
+
+substitutions:
+  _REGION: us-central1
+  _REPOSITORY: interseguro
+  _SERVICE_NAME: interseguro-frontend
+  _VITE_API_URL: https://reto1-api.example.com
+  _VITE_ROUTE_API_URL: https://reto2-api.example.com
+
+options:
+  logging: CLOUD_LOGGING_ONLY
