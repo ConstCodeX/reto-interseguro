@@ -111,15 +111,21 @@ type WorkbenchMode = 'transform' | 'route' | 'architecture'
 function ArchitectureView() {
   return <section className="architecture-view">
     <div className="architecture-heading"><div><div className="eyebrow"><Layers3 size={13} /> ARQUITECTURA TO-BE</div><h2>Reto 3</h2><p>Diseño resiliente para evitar desembolsos duplicados cuando INARI demora o responde 502.</p></div></div>
-    <div className="architecture-flow">
-      <div className="architecture-node node-client"><strong>Cliente</strong><span>Solicita desembolso</span></div><div className="architecture-arrow">Idempotency-Key</div>
-      <div className="architecture-node node-api"><strong>Backend Node.js</strong><span>Cloud Run<br />responde 202 Accepted</span></div><div className="architecture-arrow">lock + estado</div>
-      <div className="architecture-node node-control"><strong>Firestore / Redis</strong><span>Distributed Lock<br />PENDING / PROCESSING</span></div><div className="architecture-arrow">publica tarea</div>
-      <div className="architecture-node node-queue"><strong>Cloud Tasks / Pub/Sub</strong><span>reintentos<br />exponential backoff</span></div><div className="architecture-arrow">consume</div>
-      <div className="architecture-node node-worker"><strong>Worker Cloud Run</strong><span>revalida idempotencia<br />llama a INARI</span></div><div className="architecture-arrow">requestId</div>
-      <div className="architecture-node node-legacy"><strong>VMWARE INARI</strong><span>admwr-api<br />sistema legado</span></div>
+    <div className="architecture-canvas">
+      <div className="architecture-node node-client"><strong>Cliente</strong><span>Inicia la solicitud de desembolso.</span></div>
+      <div className="architecture-node node-frontend"><strong>Zona Segura / Frontend</strong><span>Envía la póliza y la Idempotency-Key. Muestra el resultado.</span></div>
+      <div className="architecture-node node-api"><strong>Backend Node.js / Cloud Run</strong><span>Valida JWT, crea requestId, registra PENDING y responde 202.</span></div>
+      <div className="architecture-node node-auth"><strong>JWT + VPC Connector</strong><span>Protege la API y permite comunicación privada.</span></div>
+      <div className="architecture-node node-control"><strong>Firestore / Redis</strong><span>Guarda la Idempotency-Key y bloquea la póliza mientras se procesa.</span></div>
+      <div className="architecture-node node-status"><strong>Estado de solicitud / Firestore</strong><span>Persiste PENDING, PROCESSING, SUCCEEDED o FAILED.</span></div>
+      <div className="architecture-node node-queue"><strong>Cloud Tasks / Pub/Sub</strong><span>Desacopla la llamada y administra reintentos con backoff.</span></div>
+      <div className="architecture-node node-worker"><strong>Worker / Cloud Run</strong><span>Consume la tarea, revalida idempotencia y llama a INARI.</span></div>
+      <div className="architecture-node node-legacy"><strong>VMWARE INARI / admwr-api</strong><span>Sistema legado que ejecuta el desembolso.</span></div>
+      <div className="architecture-node node-dlq"><strong>Dead Letter Queue</strong><span>Conserva eventos que agotaron sus reintentos para revisión.</span></div>
+      <div className="architecture-node node-notify"><strong>SSE / WebSocket / Polling</strong><span>Notifica al frontend los cambios de estado.</span></div>
     </div>
-    <div className="architecture-bottom"><div className="architecture-card"><div className="status-card-label">resiliencia</div><strong>502 / timeout</strong><span>La cola reintenta sin bloquear al cliente. Los fallos definitivos terminan en DLQ.</span></div><div className="architecture-card"><div className="status-card-label">estado</div><strong>Firestore</strong><span>Persiste el resultado y permite consultar la operación aunque el cliente se desconecte.</span></div><div className="architecture-card"><div className="status-card-label">notificación</div><strong>SSE / WebSocket / Polling</strong><span>El frontend recibe PENDING, PROCESSING, SUCCEEDED o FAILED.</span></div></div>
+    <div className="architecture-bottom"><div className="architecture-card"><div className="status-card-label">resiliencia</div><strong>502 / timeout</strong><span>La cola reintenta sin bloquear al cliente.</span></div><div className="architecture-card"><div className="status-card-label">concurrencia</div><strong>Una póliza, un proceso</strong><span>El lock evita que dos solicitudes creen desembolsos duplicados.</span></div><div className="architecture-card"><div className="status-card-label">notificación</div><strong>Estado visible</strong><span>El frontend recibe el resultado aunque INARI tarde.</span></div></div>
+    <div className="architecture-explanation"><div className="eyebrow"><Sparkles size={13} /> COMO RESOLVÍ EL PROBLEMA</div><div className="explanation-grid"><div><b>01 / Evito duplicados</b><span>Uso una Idempotency-Key y un lock por póliza. Si el cliente repite la solicitud, no creo otro desembolso.</span></div><div><b>02 / Respondo rápido</b><span>El backend devuelve 202 Accepted y deja el trabajo en una cola, sin esperar a que INARI termine.</span></div><div><b>03 / Reintento con control</b><span>Un Worker llama a INARI. Si hay 502 o timeout, la cola reintenta automáticamente con backoff.</span></div><div><b>04 / Informo el resultado</b><span>Guardo el estado y notifico al frontend cuando el desembolso termina o requiere revisión.</span></div></div></div>
   </section>
 }
 
