@@ -1,0 +1,64 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-interseguro}
+      POSTGRES_USER: ${POSTGRES_USER:-interseguro}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-interseguro}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  reto1-api:
+    build: ./reto1
+    environment:
+      PORT: 3000
+      JWT_SECRET: ${JWT_SECRET:-development-secret-change-me}
+      ENABLE_DEV_AUTH: ${ENABLE_DEV_AUTH:-true}
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${POSTGRES_DB:-interseguro}
+      DB_USER: ${POSTGRES_USER:-interseguro}
+      DB_PASSWORD: ${POSTGRES_PASSWORD:-interseguro}
+      DB_SYNCHRONIZE: ${DB_SYNCHRONIZE:-true}
+    ports:
+      - "${RETO1_PORT:-3000}:3000"
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "--quiet", "http://127.0.0.1:3000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  reto2-api:
+    build: ./reto2
+    environment:
+      PORT: 8080
+      JWT_SECRET: ${JWT_SECRET:-development-secret-change-me}
+      ENABLE_DEV_AUTH: ${ENABLE_DEV_AUTH:-true}
+      CORS_ORIGIN: ${CORS_ORIGIN:-http://localhost:4173}
+    ports:
+      - "${RETO2_PORT:-8080}:8080"
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL:-http://localhost:3000}
+        VITE_ROUTE_API_URL: ${VITE_ROUTE_API_URL:-http://localhost:8080}
+    ports:
+      - "${FRONTEND_PORT:-4173}:80"
+    depends_on:
+      reto1-api:
+        condition: service_healthy
+      reto2-api:
+        condition: service_started
+
+volumes:
+  postgres-data:
