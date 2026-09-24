@@ -23,7 +23,7 @@ steps:
       - --platform=managed
       - --allow-unauthenticated
       - --add-cloudsql-instances=${_DB_CONNECTION}
-      - --set-env-vars=PORT=3000,DB_HOST=/cloudsql/${_DB_CONNECTION},DB_PORT=5432,DB_NAME=${_DB_NAME},DB_USER=${_DB_USER},DB_SYNCHRONIZE=false,ENABLE_DEV_AUTH=false
+      - --set-env-vars=DB_HOST=/cloudsql/${_DB_CONNECTION},DB_PORT=5432,DB_NAME=${_DB_NAME},DB_USER=${_DB_USER},DB_SYNCHRONIZE=false,ENABLE_DEV_AUTH=false
       - --set-secrets=JWT_SECRET=jwt-secret:latest,DB_PASSWORD=postgres-password:latest
 
 images:

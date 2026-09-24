@@ -22,7 +22,7 @@ steps:
       - --region=${_REGION}
       - --platform=managed
       - --allow-unauthenticated
-      - --set-env-vars=PORT=8080,ENABLE_DEV_AUTH=false,CORS_ORIGIN=${_CORS_ORIGIN}
+      - --set-env-vars=ENABLE_DEV_AUTH=false,CORS_ORIGIN=${_CORS_ORIGIN}
       - --set-secrets=JWT_SECRET=jwt-secret:latest
 
 images:
