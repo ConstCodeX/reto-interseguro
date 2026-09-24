@@ -83,6 +83,12 @@ URLs locales:
 - Reto 1: `http://localhost:3000`
 - Reto 2: `http://localhost:8080`
 
+## Demo en GCP
+
+La versión desplegada del frontend está disponible para probar en:
+
+https://interseguro-frontend-o26bmvytoa-uc.a.run.app
+
 Tambien se puede usar el `Makefile` como atajo:
 
 ```bash
